@@ -18,7 +18,7 @@ objects to be brought to bear on it.
 
 Imagine you have a range of size_t and you wish to return
 a vector of vectors, with the sizes given from the given range.
-Native code can look like:
+Naive code can look like:
 
 ```c++
     std::vector<std::vector<int>> result;
