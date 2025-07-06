@@ -30,7 +30,8 @@ Naive code can look like:
 
 However, this is unsatisfying. The input range may be an input_range,
 which does not afford two passes (one for std::distance, one for the for
-loop).
+loop). The emplace_back loop is less efficient than constructing the vector
+from a range.
 
 A modern range-based solution would look like
 
