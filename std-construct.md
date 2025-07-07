@@ -70,6 +70,7 @@ namespace std {
 - Returns the constructed object by value
 - Works with both trivial and complex types
 - `constexpr`-compatible
+- if T is a reference type and std::construct<T> attempts to bind its return value to a temporary, the program is ill formed
 
 ## IV. Example Usage
 
