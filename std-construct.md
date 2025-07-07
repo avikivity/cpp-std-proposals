@@ -106,6 +106,13 @@ namespace std {
 ### Potential Concerns
 - Might be seen as redundant with [P3312](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3312r1.pdf)
 
+### Naming
+`std::construct()` is seen as consistent with std::construct_at().
+
+Other alternatives:
+ - `std::make_obj_using_allocator()` is similar. Perhaps `std::make_obj<T>()` or `std::make_object<T>()` would work.
+ - `std::make_from_tuple()` is also similar. So perhaps `std::make<T>(...)`?!
+
 ## VI. Implementation
 
 Reference implementation:
