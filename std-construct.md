@@ -45,6 +45,16 @@ A modern range-based solution would look like
 
 This is still unsatisfying, as the lambda is not concise.
 
+We propose `std::construct<T>`, similar to std::mem_fn() but instead of converting
+a member function to a callable object, it converts a constructor overload set to
+a callable object. With std::construct, the example above can be written as
+
+```c++
+    auto result = input
+        | std::views::transform(std::construct<std::vector<int>>)
+        | std::ranges::to<std::vector>();
+```
+
 ## III. Proposed Solution: `std::construct`
 
 ### A. Function Signature
