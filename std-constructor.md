@@ -1,4 +1,4 @@
-# Proposal for `std::construct` Function Object
+# Proposal for `std::constructor` Function Object
 
 ## I. Motivation
 
@@ -9,7 +9,7 @@ and use them to transform ranges with std::views::transform. But none
 of that can be done directly to class constructors; a helper function
 must be used to "downgrade" the constructor into a function.
 
-The proposed `std::construct<>` is a utility function object that provides
+The proposed `std::constructor<>` is a utility function object that provides
 a convenient, generic mechanism to convert a constructor overload set into
 a function object, thereby allowing all the existing tooling for function
 objects to be brought to bear on it.
@@ -45,65 +45,73 @@ A modern range-based solution would look like
 
 This is still unsatisfying, as the lambda is not concise.
 
-We propose `std::construct<T>`, similar to std::mem_fn() but instead of converting
+We propose `std::constructor<T>`, similar to std::mem_fn() but instead of converting
 a member function to a callable object, it converts a constructor overload set to
-a callable object. With std::construct, the example above can be written as
+a callable object. With std::constructor, the example above can be written as
 
 ```c++
     auto result = input
-        | std::views::transform(std::construct<std::vector<int>>)
+        | std::views::transform(std::constructor<std::vector<int>>())
         | std::ranges::to<std::vector>();
 ```
 
-## III. Proposed Solution: `std::construct`
+## III. Proposed Solution: `std::constructor`
 
 ### A. Function Signature
 
-`std::construct<T>` evaluates to a function object that perfectly
+`std::constructor<T>()` evaluates to a function object that perfectly
 forwards its arguments to T's constructors.
 
 ```c++
 namespace std {
 
     template <typename T>
-    inline constexpr auto construct = [] <typename... Args> (Args&&... args) -> T
-    {
-        return T(std::forward<Args>(args)...);
+    struct constructor {
+        template <typename... Args>
+        static constexpr T operator()(Args&&... args)
+                noexcept(std::is_nothrow_constructible_v<T, Args...>) {
+            return T(std::forward<Args>(args)...);
+        };
     };
+
 }
 ```
 
 ### B. Semantics
 
 - Constructs an object of type `T` using perfect forwarding
-- Supports any constructor of `T`
+- Supports any public constructor of `T`
 - Returns the constructed object by value
 - Works with both trivial and complex types
 - `constexpr`-compatible
-- if T is a reference type and std::construct<T> attempts to bind its return value to a temporary, the program is ill formed
+- `noexcept` preserving
+- if T is a reference type and std::constructor<T> attempts to bind its return value to a temporary, the program is ill formed
 
 ## IV. Example Usage
 
 ```c++
-    // Basic usage
-    auto str = std::construct<std::string>("Hello");
+    // Basic usage (not expected in common programs)
+    auto str = std::constructor<std::string>()("Hello");
 
     // Complex type construction
     struct Complex {
         int x, y;
         Complex(int a, int b) : x(a), y(b) {}
     };
-    auto comp = std::construct<Complex>(10, 20);
+    auto comp = std::constructor<Complex>()(10, 20);
 
     // Composability with std::bind_front
-    auto make_imag = std::bind_front(std::construct<Complex>, 0);
+    auto make_imag = std::bind_front(std::constructor<Complex>(), 0);
     auto sqrt_minus_one = make_imag(1);
 
     // Updated example from above
+    auto input = std::views::iota(0, 10);
     auto result = input
-        | std::views::transform(std::construct<std::vector<int>>)
+        | std::views::transform(std::constructor<std::vector<int>>())
         | std::ranges::to<std::vector>();
 
+    // Bind an allocator to a container constructor
+    auto make_vector_with_alloc = std::bind_back(std::constructor<std::vector<int>>(), std::ref(alloc));
 ```
 
 ## V. Design Considerations
@@ -118,7 +126,7 @@ namespace std {
 - Might be seen as redundant with [P3312](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3312r1.pdf)
 
 ### Naming
-`std::construct()` is seen as consistent with std::construct_at().
+`std::constructor<T>()` is seen as consistent with std::plus<T>().
 
 Other alternatives:
  - `std::make_obj_using_allocator()` is similar. Perhaps `std::make_obj<T>()` or `std::make_object<T>()` would work.
@@ -129,9 +137,12 @@ Other alternatives:
 Reference implementation:
 ```cpp
     template <typename T>
-    inline constexpr auto construct = [] <typename... Args> (Args&&... args) -> T
-    {
-        return T(std::forward<Args>(args)...);
+    struct constructor {
+        template <typename... Args>
+        static constexpr T operator()(Args&&... args)
+                noexcept(std::is_nothrow_constructible_v<T, Args...>) {
+            return T(std::forward<Args>(args)...);
+        };
     };
 ```
 
